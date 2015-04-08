@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Runtime.Serialization.Json;
@@ -85,6 +86,14 @@ namespace WeatherStationTask
         private Mutex mutex;
         private string mutexId = "WeatherStation";
 
+        // Hard coding guid for sensors. Not an issue for this particular application which is meant for testing and demos
+        private List<ConnectTheDotsSensor> sensors = new List<ConnectTheDotsSensor> {
+            new ConnectTheDotsSensor("2298a348-e2f9-4438-ab23-82a3930662ab", "Altitude", "m"),
+            new ConnectTheDotsSensor("2298a348-e2f9-4438-ab23-82a3930662ac", "Humidity", "%RH"),
+            new ConnectTheDotsSensor("2298a348-e2f9-4438-ab23-82a3930662ad", "Pressure", "kPa"),
+            new ConnectTheDotsSensor("2298a348-e2f9-4438-ab23-82a3930662ae", "Temperature", "C"),
+        };
+
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
             // Ensure our background task remains running
@@ -92,6 +101,17 @@ namespace WeatherStationTask
 
             // Mutex will be used to ensure only one thread at a time is talking to the shield / isolated storage
             mutex = new Mutex(false, mutexId);
+
+            // Initialize ConnectTheDots Settings
+            localSettings.ServicebusNamespace = "iotbuildlab-ns";
+            localSettings.EventHubName = "ehdevices";
+            localSettings.KeyName = "D1";
+            localSettings.Key = "iQFNbyWTYRBwypMtPmpfJVz+NBgR32YHrQC0ZSvId20=";
+            localSettings.DisplayName = "WeatherStation1";
+            localSettings.Organization = "IoT Build Lab";
+            localSettings.Location = "USA";
+
+            SaveSettings();
 
             // Initialize WeatherShield
             await shield.BeginAsync();
@@ -128,8 +148,9 @@ namespace WeatherStationTask
 
                     shield.BlueLEDPin.Write(Windows.Devices.Gpio.GpioPinValue.Low);
 
-                    // Push the WeatherData local/cloud storage
+                    // Push the WeatherData local/cloud storage (viewable at http://iotbuildlab.azurewebsites.net/)
                     WriteDataToIsolatedStorage();
+                    SendDataToConnectTheDots();
                 }
             }
             finally
@@ -159,6 +180,48 @@ namespace WeatherStationTask
                 writer.WriteLine(weatherData.FahrenheitTemperature.ToString());
                 writer.WriteLine(weatherData.Humidity.ToString());
                 writer.Flush();
+            }
+        }
+
+        private void SendDataToConnectTheDots()
+        {
+            ConnectTheDotsSensor sensor;
+            string time = DateTime.UtcNow.ToString("o");
+
+            // Send the altitude data
+            sensor = sensors.Find(item => item.measurename == "Altitude");
+            if (sensor != null)
+            {
+                sensor.value = weatherData.Altitude;
+                sensor.timecreated = time;
+                sendMessage(sensor.ToJson());
+            }
+
+            // Send the humidity data
+            sensor = sensors.Find(item => item.measurename == "Humidity");
+            if (sensor != null)
+            {
+                sensor.value = weatherData.Humidity;
+                sensor.timecreated = time;
+                sendMessage(sensor.ToJson());
+            }
+
+            // Sending the pressure data
+            sensor = sensors.Find(item => item.measurename == "Pressure");
+            if (sensor != null)
+            {
+                sensor.value = (weatherData.BarometricPressure / 1000);
+                sensor.timecreated = time;
+                sendMessage(sensor.ToJson());
+            }
+
+            // Sending the temperature data
+            sensor = sensors.Find(item => item.measurename == "Temperature");
+            if (sensor != null)
+            {
+                sensor.value = weatherData.CelsiusTemperature;
+                sensor.timecreated = time;
+                sendMessage(sensor.ToJson());
             }
         }
 
