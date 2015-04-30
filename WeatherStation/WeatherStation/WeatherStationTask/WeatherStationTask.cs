@@ -103,13 +103,13 @@ namespace WeatherStationTask
             mutex = new Mutex(false, mutexId);
 
             // Initialize ConnectTheDots Settings
-            localSettings.ServicebusNamespace = "iotbuildlab-ns";
+            localSettings.ServicebusNamespace = "YOURSERVICEBUS-ns";
             localSettings.EventHubName = "ehdevices";
             localSettings.KeyName = "D1";
-            localSettings.Key = "iQFNbyWTYRBwypMtPmpfJVz+NBgR32YHrQC0ZSvId20=";
-            localSettings.DisplayName = "WeatherStation1";
-            localSettings.Organization = "IoT Build Lab";
-            localSettings.Location = "USA";
+            localSettings.Key = "YOUR_KEY";
+            localSettings.DisplayName = "YOUR_DEVICE_NAME";
+            localSettings.Organization = "YOUR_ORGANIZATION_OR_SELF";
+            localSettings.Location = "YOUR_LOCATION";
 
             SaveSettings();
 
