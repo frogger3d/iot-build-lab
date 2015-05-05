@@ -113,6 +113,7 @@
     <Compile Include="ConnectTheDotsHelper.cs" />
     <Compile Include="ConnectTheDotsSensor.cs" />
     <Compile Include="IWeatherShield.cs" />
+    <Compile Include="MockWeatherShield.cs" />
     <Compile Include="WeatherShield.cs" />
     <Compile Include="WeatherStationTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -2,11 +2,10 @@
 using Windows.Devices.Gpio;
 using Windows.Foundation;
 
-namespace WeatherStationTask.Sparkfun
+namespace WeatherStationTask
 {
     public interface IWeatherShield
     {
-
         /// <summary>
         /// Blue status LED on shield
         /// </summary>
