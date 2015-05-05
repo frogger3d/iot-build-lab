@@ -82,7 +82,7 @@ namespace WeatherStationTask
         private readonly int port = 50001;
         private WeatherData weatherData = new WeatherData();
         private readonly int i2cReadIntervalSeconds = 2;
-        private WeatherShield shield = new WeatherShield();
+        private IWeatherShield shield = new WeatherShield();
         private Mutex mutex;
         private string mutexId = "WeatherStation";
 

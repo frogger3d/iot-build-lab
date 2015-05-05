@@ -3,12 +3,13 @@ using System.Threading.Tasks;
 using Windows.Devices.Enumeration;
 using Windows.Devices.Gpio;
 using Windows.Devices.I2c;
+using Windows.Foundation;
 
 namespace WeatherStationTask
 {
     namespace Sparkfun
     {
-        public sealed class WeatherShield
+        public sealed class WeatherShield : IWeatherShield
         {
             // LED Control Pins
             private const int STATUS_LED_BLUE_PIN = 6;
@@ -57,79 +58,82 @@ namespace WeatherStationTask
             /// Setup and instantiate the I2C device objects for the HTDU21D and the MPL3115A2
             /// and initialize the blue and green status LEDs.
             /// </remarks>
-            internal async Task BeginAsync()
+            public IAsyncAction BeginAsync()
             {
-                /*
-                 * Acquire the GPIO controller
-                 * MSDN GPIO Reference: https://msdn.microsoft.com/en-us/library/windows/apps/windows.devices.gpio.aspx
-                 * 
-                 * Get the default GpioController
-                 */
-                GpioController gpio = GpioController.GetDefault();
+                return Task.Run(async () => 
+                {
+                    /*
+                     * Acquire the GPIO controller
+                     * MSDN GPIO Reference: https://msdn.microsoft.com/en-us/library/windows/apps/windows.devices.gpio.aspx
+                     * 
+                     * Get the default GpioController
+                     */
+                    GpioController gpio = GpioController.GetDefault();
 
-                /*
-                 * Initialize the blue LED and set to "off"
-                 *
-                 * Instantiate the blue LED pin object
-                 * Write the GPIO pin value of low on the pin
-                 * Set the GPIO pin drive mode to output
-                 */
-                BlueLEDPin = gpio.OpenPin(STATUS_LED_BLUE_PIN, GpioSharingMode.Exclusive);
-                BlueLEDPin.Write(GpioPinValue.Low);
-                BlueLEDPin.SetDriveMode(GpioPinDriveMode.Output);
+                    /*
+                     * Initialize the blue LED and set to "off"
+                     *
+                     * Instantiate the blue LED pin object
+                     * Write the GPIO pin value of low on the pin
+                     * Set the GPIO pin drive mode to output
+                     */
+                    BlueLEDPin = gpio.OpenPin(STATUS_LED_BLUE_PIN, GpioSharingMode.Exclusive);
+                    BlueLEDPin.Write(GpioPinValue.Low);
+                    BlueLEDPin.SetDriveMode(GpioPinDriveMode.Output);
 
-                /*
-                 * Initialize the green LED and set to "off"
-                 * 
-                 * Instantiate the green LED pin object
-                 * Write the GPIO pin value of low on the pin
-                 * Set the GPIO pin drive mode to output
-                 */
-                GreenLEDPin = gpio.OpenPin(STATUS_LED_GREEN_PIN, GpioSharingMode.Exclusive);
-                GreenLEDPin.Write(GpioPinValue.Low);
-                GreenLEDPin.SetDriveMode(GpioPinDriveMode.Output);
+                    /*
+                     * Initialize the green LED and set to "off"
+                     * 
+                     * Instantiate the green LED pin object
+                     * Write the GPIO pin value of low on the pin
+                     * Set the GPIO pin drive mode to output
+                     */
+                    GreenLEDPin = gpio.OpenPin(STATUS_LED_GREEN_PIN, GpioSharingMode.Exclusive);
+                    GreenLEDPin.Write(GpioPinValue.Low);
+                    GreenLEDPin.SetDriveMode(GpioPinDriveMode.Output);
 
-                /*
-                 * Acquire the I2C device
-                 * MSDN I2C Reference: https://msdn.microsoft.com/en-us/library/windows/apps/windows.devices.i2c.aspx
-                 *
-                 * Use the I2cDevice device selector to create an advanced query syntax string
-                 * Use the Windows.Devices.Enumeration.DeviceInformation class to create a collection using the advanced query syntax string
-                 * Take the device id of the first device in the collection
-                 */
-                string advanced_query_syntax = I2cDevice.GetDeviceSelector("I2C1");
-                DeviceInformationCollection device_information_collection = await DeviceInformation.FindAllAsync(advanced_query_syntax);
-                string deviceId = device_information_collection[0].Id;
+                    /*
+                     * Acquire the I2C device
+                     * MSDN I2C Reference: https://msdn.microsoft.com/en-us/library/windows/apps/windows.devices.i2c.aspx
+                     *
+                     * Use the I2cDevice device selector to create an advanced query syntax string
+                     * Use the Windows.Devices.Enumeration.DeviceInformation class to create a collection using the advanced query syntax string
+                     * Take the device id of the first device in the collection
+                     */
+                    string advanced_query_syntax = I2cDevice.GetDeviceSelector("I2C1");
+                    DeviceInformationCollection device_information_collection = await DeviceInformation.FindAllAsync(advanced_query_syntax);
+                    string deviceId = device_information_collection[0].Id;
 
-                /*
-                 * Establish an I2C connection to the HTDU21D
-                 *
-                 * Instantiate the I2cConnectionSettings using the device address of the HTDU21D
-                 * - Set the I2C bus speed of connection to fast mode
-                 * - Set the I2C sharing mode of the connection to shared
-                 *
-                 * Instantiate the the HTDU21D I2C device using the device id and the I2cConnectionSettings
-                 */
-                I2cConnectionSettings htdu21d_connection = new I2cConnectionSettings(HTDU21D_I2C_ADDRESS);
-                htdu21d_connection.BusSpeed = I2cBusSpeed.FastMode;
-                htdu21d_connection.SharingMode = I2cSharingMode.Shared;
+                    /*
+                     * Establish an I2C connection to the HTDU21D
+                     *
+                     * Instantiate the I2cConnectionSettings using the device address of the HTDU21D
+                     * - Set the I2C bus speed of connection to fast mode
+                     * - Set the I2C sharing mode of the connection to shared
+                     *
+                     * Instantiate the the HTDU21D I2C device using the device id and the I2cConnectionSettings
+                     */
+                    I2cConnectionSettings htdu21d_connection = new I2cConnectionSettings(HTDU21D_I2C_ADDRESS);
+                    htdu21d_connection.BusSpeed = I2cBusSpeed.FastMode;
+                    htdu21d_connection.SharingMode = I2cSharingMode.Shared;
 
-                htdu21d = await I2cDevice.FromIdAsync(deviceId, htdu21d_connection);
+                    htdu21d = await I2cDevice.FromIdAsync(deviceId, htdu21d_connection);
 
-                /*
-                 * Establish an I2C connection to the MPL3115A2
-                 *
-                 * Instantiate the I2cConnectionSettings using the device address of the MPL3115A2
-                 * - Set the I2C bus speed of connection to fast mode
-                 * - Set the I2C sharing mode of the connection to shared
-                 *
-                 * Instantiate the the MPL3115A2 I2C device using the device id and the I2cConnectionSettings
-                 */
-                I2cConnectionSettings mpl3115a2_connection = new I2cConnectionSettings(MPL3115A2_I2C_ADDRESS);
-                mpl3115a2_connection.BusSpeed = I2cBusSpeed.FastMode;
-                mpl3115a2_connection.SharingMode = I2cSharingMode.Shared;
+                    /*
+                     * Establish an I2C connection to the MPL3115A2
+                     *
+                     * Instantiate the I2cConnectionSettings using the device address of the MPL3115A2
+                     * - Set the I2C bus speed of connection to fast mode
+                     * - Set the I2C sharing mode of the connection to shared
+                     *
+                     * Instantiate the the MPL3115A2 I2C device using the device id and the I2cConnectionSettings
+                     */
+                    I2cConnectionSettings mpl3115a2_connection = new I2cConnectionSettings(MPL3115A2_I2C_ADDRESS);
+                    mpl3115a2_connection.BusSpeed = I2cBusSpeed.FastMode;
+                    mpl3115a2_connection.SharingMode = I2cSharingMode.Shared;
 
-                mpl3115a2 = await I2cDevice.FromIdAsync(deviceId, mpl3115a2_connection);
+                    mpl3115a2 = await I2cDevice.FromIdAsync(deviceId, mpl3115a2_connection);
+                }).AsAsyncAction();
             }
 
             /// <summary>
